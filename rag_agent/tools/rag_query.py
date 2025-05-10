@@ -2,26 +2,26 @@
 Tool for querying Vertex AI RAG corpora and retrieving relevant information.
 """
 
-from typing import Dict
+import logging
 
-import vertexai
+from dotenv import load_dotenv
 from google.adk.tools.tool_context import ToolContext
 from vertexai import rag
 
 from ..config import (
     DEFAULT_DISTANCE_THRESHOLD,
     DEFAULT_TOP_K,
-    LOCATION,
-    PROJECT_ID,
 )
 from .utils import create_corpus_if_not_exists, get_corpus_resource_name
+
+load_dotenv()
 
 
 def rag_query(
     corpus_name: str,
     query: str,
     tool_context: ToolContext,
-) -> Dict:
+) -> dict:
     """
     Query a Vertex AI RAG corpus with a user question and return relevant information.
     If the specified corpus doesn't exist, it will be created automatically.
@@ -36,9 +36,6 @@ def rag_query(
         dict: The query results and status
     """
     try:
-        # Initialize Vertex AI
-        vertexai.init(project=PROJECT_ID, location=LOCATION)
-
         # Check if corpus exists and create it if needed
         corpus_result = create_corpus_if_not_exists(corpus_name, tool_context)
         if not corpus_result["success"]:
@@ -117,9 +114,10 @@ def rag_query(
         }
 
     except Exception as e:
+        logging.error(f"Error querying corpus: {str(e)}")
         return {
             "status": "error",
-            "message": f"Error querying corpus: {str(e)}",
-            "query": query,
-            "corpus_name": corpus_name,
+            # "message": f"Error querying corpus: {str(e)}",
+            # "query": query,
+            # "corpus_name": corpus_name,
         }

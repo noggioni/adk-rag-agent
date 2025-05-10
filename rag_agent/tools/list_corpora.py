@@ -4,16 +4,13 @@ Tool for listing all available Vertex AI RAG corpora.
 
 from typing import Dict, List, Union
 
-import vertexai
 from google.adk.tools.tool_context import ToolContext
 from vertexai import rag
-
-from ..config import LOCATION, PROJECT_ID
 
 
 def list_corpora(
     tool_context: ToolContext,
-) -> Dict:
+) -> dict:
     """
     List all available Vertex AI RAG corpora.
 
@@ -28,10 +25,6 @@ def list_corpora(
             - update_time: When the corpus was last updated
     """
     try:
-        print("Listing corpora...", PROJECT_ID)
-        # Initialize Vertex AI
-        vertexai.init(project=PROJECT_ID, location=LOCATION)
-
         # Get the list of corpora
         corpora = rag.list_corpora()
 
@@ -51,18 +44,14 @@ def list_corpora(
 
             corpus_info.append(corpus_data)
 
-        print(f"Corpus info: {corpus_info}")
-
         return {
             "status": "success",
-            "message": f"Found {len(corpus_info)} corpus/corpora",
+            "message": f"Found {len(corpus_info)} available corpora",
             "corpora": corpus_info,
-            "count": len(corpus_info),
-            "note": "Use the 'resource_name' field (not 'display_name') when referencing corpora in other tools",
         }
-
     except Exception as e:
         return {
             "status": "error",
             "message": f"Error listing corpora: {str(e)}",
+            "corpora": [],
         }

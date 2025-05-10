@@ -2,10 +2,10 @@
 Utility functions for the RAG tools.
 """
 
+import logging
 import re
 from typing import Any, Dict
 
-import vertexai
 from google.adk.tools.tool_context import ToolContext
 from vertexai import rag
 
@@ -14,6 +14,8 @@ from ..config import (
     LOCATION,
     PROJECT_ID,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def get_corpus_resource_name(corpus_name: str) -> str:
@@ -27,7 +29,7 @@ def get_corpus_resource_name(corpus_name: str) -> str:
     Returns:
         str: The full resource name of the corpus
     """
-    print(f"Corpus name: {corpus_name}")
+    logger.info(f"Getting resource name for corpus: {corpus_name}")
 
     # If it's already a full resource name with the projects/locations/ragCorpora format
     if re.match(r"^projects/[^/]+/locations/[^/]+/ragCorpora/[^/]+$", corpus_name):
@@ -35,15 +37,13 @@ def get_corpus_resource_name(corpus_name: str) -> str:
 
     # Check if this is a display name of an existing corpus
     try:
-        # Initialize Vertex AI if needed
-        vertexai.init(project=PROJECT_ID, location=LOCATION)
-
         # List all corpora and check if there's a match with the display name
         corpora = rag.list_corpora()
         for corpus in corpora:
             if hasattr(corpus, "display_name") and corpus.display_name == corpus_name:
                 return corpus.name
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Error when checking for corpus display name: {str(e)}")
         # If we can't check, continue with the default behavior
         pass
 
@@ -73,13 +73,12 @@ def check_corpus_exists(corpus_name: str, tool_context: ToolContext) -> bool:
         bool: True if the corpus exists, False otherwise
     """
     # Check state first if tool_context is provided
-    if tool_context.state.get(f"corpus_exists_{corpus_name}"):
+    if hasattr(tool_context, "state") and tool_context.state.get(
+        f"corpus_exists_{corpus_name}"
+    ):
         return True
 
     try:
-        # Initialize Vertex AI
-        vertexai.init(project=PROJECT_ID, location=LOCATION)
-
         # Get full resource name
         corpus_resource_name = get_corpus_resource_name(corpus_name)
 
@@ -91,11 +90,13 @@ def check_corpus_exists(corpus_name: str, tool_context: ToolContext) -> bool:
                 or corpus.display_name == corpus_name
             ):
                 # Update state
-                tool_context.state[f"corpus_exists_{corpus_name}"] = True
+                if hasattr(tool_context, "state"):
+                    tool_context.state[f"corpus_exists_{corpus_name}"] = True
                 return True
 
         return False
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error checking if corpus exists: {str(e)}")
         # If we can't check, assume it doesn't exist
         return False
 
@@ -130,9 +131,6 @@ def create_corpus_if_not_exists(
         }
 
     try:
-        # Initialize Vertex AI
-        vertexai.init(project=PROJECT_ID, location=LOCATION)
-
         # Clean corpus name for use as display name
         display_name = re.sub(r"[^a-zA-Z0-9_-]", "_", corpus_name)
 
@@ -152,7 +150,8 @@ def create_corpus_if_not_exists(
         )
 
         # Update state
-        tool_context.state[f"corpus_exists_{corpus_name}"] = True
+        if hasattr(tool_context, "state"):
+            tool_context.state[f"corpus_exists_{corpus_name}"] = True
 
         return {
             "success": True,
@@ -164,6 +163,7 @@ def create_corpus_if_not_exists(
         }
 
     except Exception as e:
+        logger.error(f"Error creating corpus: {str(e)}")
         return {
             "success": False,
             "status": "error",

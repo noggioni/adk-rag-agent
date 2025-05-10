@@ -25,9 +25,6 @@ Before running the agent, you need to set up authentication with Google Cloud:
 
 1. **Install Google Cloud CLI**:
    - Visit [Google Cloud SDK](https://cloud.google.com/sdk/docs/install) for installation instructions for your OS
-   - For macOS with Homebrew: `brew install google-cloud-sdk`
-   - For Windows: Download and run the installer from the Google Cloud website
-   - For Linux: Follow the distribution-specific instructions on the Google Cloud website
 
 2. **Initialize the Google Cloud CLI**:
    ```bash

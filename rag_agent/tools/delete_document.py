@@ -2,13 +2,9 @@
 Tool for deleting a specific document from a Vertex AI RAG corpus.
 """
 
-from typing import Dict
-
-import vertexai
 from google.adk.tools.tool_context import ToolContext
 from vertexai import rag
 
-from ..config import LOCATION, PROJECT_ID
 from .utils import check_corpus_exists, get_corpus_resource_name
 
 
@@ -16,7 +12,7 @@ def delete_document(
     corpus_name: str,
     document_id: str,
     tool_context: ToolContext,
-) -> Dict:
+) -> dict:
     """
     Delete a specific document from a Vertex AI RAG corpus.
 
@@ -30,27 +26,22 @@ def delete_document(
     Returns:
         dict: Status information about the deletion operation
     """
+    # Check if corpus exists
+    if not check_corpus_exists(corpus_name, tool_context):
+        return {
+            "status": "error",
+            "message": f"Corpus '{corpus_name}' does not exist",
+            "corpus_name": corpus_name,
+            "document_id": document_id,
+        }
+
     try:
-        # Initialize Vertex AI
-        vertexai.init(project=PROJECT_ID, location=LOCATION)
-
-        # Check if corpus exists
-        if not check_corpus_exists(corpus_name, tool_context):
-            return {
-                "status": "error",
-                "message": f"Corpus '{corpus_name}' does not exist, so the document cannot be deleted.",
-                "corpus_name": corpus_name,
-                "document_id": document_id,
-            }
-
         # Get the corpus resource name
         corpus_resource_name = get_corpus_resource_name(corpus_name)
 
-        # Construct the full document resource name
-        document_resource_name = f"{corpus_resource_name}/ragFiles/{document_id}"
-
         # Delete the document
-        rag.delete_file(name=document_resource_name)
+        rag_file_path = f"{corpus_resource_name}/ragFiles/{document_id}"
+        rag.delete_file(rag_file_path)
 
         return {
             "status": "success",
@@ -58,7 +49,6 @@ def delete_document(
             "corpus_name": corpus_name,
             "document_id": document_id,
         }
-
     except Exception as e:
         return {
             "status": "error",
