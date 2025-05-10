@@ -4,13 +4,11 @@ Utility functions for the RAG tools.
 
 import logging
 import re
-from typing import Any, Dict
 
 from google.adk.tools.tool_context import ToolContext
 from vertexai import rag
 
 from ..config import (
-    DEFAULT_EMBEDDING_MODEL,
     LOCATION,
     PROJECT_ID,
 )
@@ -73,9 +71,7 @@ def check_corpus_exists(corpus_name: str, tool_context: ToolContext) -> bool:
         bool: True if the corpus exists, False otherwise
     """
     # Check state first if tool_context is provided
-    if hasattr(tool_context, "state") and tool_context.state.get(
-        f"corpus_exists_{corpus_name}"
-    ):
+    if tool_context.state.get(f"corpus_exists_{corpus_name}"):
         return True
 
     try:
@@ -90,8 +86,10 @@ def check_corpus_exists(corpus_name: str, tool_context: ToolContext) -> bool:
                 or corpus.display_name == corpus_name
             ):
                 # Update state
-                if hasattr(tool_context, "state"):
-                    tool_context.state[f"corpus_exists_{corpus_name}"] = True
+                tool_context.state[f"corpus_exists_{corpus_name}"] = True
+                # Also set this as the current corpus if no current corpus is set
+                if not tool_context.state.get("current_corpus"):
+                    tool_context.state["current_corpus"] = corpus_name
                 return True
 
         return False
@@ -101,73 +99,19 @@ def check_corpus_exists(corpus_name: str, tool_context: ToolContext) -> bool:
         return False
 
 
-def create_corpus_if_not_exists(
-    corpus_name: str, tool_context: ToolContext
-) -> Dict[str, Any]:
+def set_current_corpus(corpus_name: str, tool_context: ToolContext) -> bool:
     """
-    Create a corpus if it doesn't already exist.
+    Set the current corpus in the tool context state.
 
     Args:
-        corpus_name (str): The name of the corpus to create if needed
+        corpus_name (str): The name of the corpus to set as current
         tool_context (ToolContext): The tool context for state management
 
     Returns:
-        Dict[str, Any]: Status information about the operation with the following keys:
-            - success (bool): True if the corpus was created or already exists
-            - corpus_name (str): The name of the corpus
-            - was_created (bool): Whether the corpus was newly created
-            - status (str): Status message ("success" or "error")
-            - message (str): Detailed message about the operation
+        bool: True if the corpus exists and was set as current, False otherwise
     """
-    # Check if corpus already exists
-    exists = check_corpus_exists(corpus_name, tool_context)
-    if exists:
-        return {
-            "success": True,
-            "status": "success",
-            "message": f"Corpus '{corpus_name}' already exists",
-            "corpus_name": corpus_name,
-            "was_created": False,
-        }
-
-    try:
-        # Clean corpus name for use as display name
-        display_name = re.sub(r"[^a-zA-Z0-9_-]", "_", corpus_name)
-
-        # Configure embedding model
-        embedding_model_config = rag.RagEmbeddingModelConfig(
-            vertex_prediction_endpoint=rag.VertexPredictionEndpoint(
-                publisher_model=DEFAULT_EMBEDDING_MODEL
-            )
-        )
-
-        # Create the corpus
-        rag_corpus = rag.create_corpus(
-            display_name=display_name,
-            backend_config=rag.RagVectorDbConfig(
-                rag_embedding_model_config=embedding_model_config
-            ),
-        )
-
-        # Update state
-        if hasattr(tool_context, "state"):
-            tool_context.state[f"corpus_exists_{corpus_name}"] = True
-
-        return {
-            "success": True,
-            "status": "success",
-            "message": f"Successfully created corpus '{corpus_name}'",
-            "corpus_name": rag_corpus.name,
-            "display_name": rag_corpus.display_name,
-            "was_created": True,
-        }
-
-    except Exception as e:
-        logger.error(f"Error creating corpus: {str(e)}")
-        return {
-            "success": False,
-            "status": "error",
-            "message": f"Error creating corpus: {str(e)}",
-            "corpus_name": corpus_name,
-            "was_created": False,
-        }
+    # Check if corpus exists first
+    if check_corpus_exists(corpus_name, tool_context):
+        tool_context.state["current_corpus"] = corpus_name
+        return True
+    return False

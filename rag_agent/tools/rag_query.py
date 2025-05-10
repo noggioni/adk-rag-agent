@@ -4,7 +4,6 @@ Tool for querying Vertex AI RAG corpora and retrieving relevant information.
 
 import logging
 
-from dotenv import load_dotenv
 from google.adk.tools.tool_context import ToolContext
 from vertexai import rag
 
@@ -12,9 +11,7 @@ from ..config import (
     DEFAULT_DISTANCE_THRESHOLD,
     DEFAULT_TOP_K,
 )
-from .utils import create_corpus_if_not_exists, get_corpus_resource_name
-
-load_dotenv()
+from .utils import check_corpus_exists, get_corpus_resource_name
 
 
 def rag_query(
@@ -24,11 +21,10 @@ def rag_query(
 ) -> dict:
     """
     Query a Vertex AI RAG corpus with a user question and return relevant information.
-    If the specified corpus doesn't exist, it will be created automatically.
 
     Args:
-        corpus_name (str): The full resource name of the corpus to query.
-                           Preferably use the resource_name from list_corpora results.
+        corpus_name (str): The name of the corpus to query. If empty, the current corpus will be used.
+                          Preferably use the resource_name from list_corpora results.
         query (str): The text query to search for in the corpus
         tool_context (ToolContext): The tool context
 
@@ -36,25 +32,14 @@ def rag_query(
         dict: The query results and status
     """
     try:
-        # Check if corpus exists and create it if needed
-        corpus_result = create_corpus_if_not_exists(corpus_name, tool_context)
-        if not corpus_result["success"]:
+
+        # Check if the corpus exists
+        if not check_corpus_exists(corpus_name, tool_context):
             return {
                 "status": "error",
-                "message": f"Unable to access or create corpus '{corpus_name}': {corpus_result['message']}",
+                "message": f"Corpus '{corpus_name}' does not exist. Please create it first using the create_corpus tool.",
                 "query": query,
                 "corpus_name": corpus_name,
-            }
-
-        # If corpus was created, there's no data to query yet
-        if corpus_result.get("was_created", False):
-            return {
-                "status": "warning",
-                "message": f"Created a new corpus '{corpus_name}', but it doesn't contain any data yet. Please add data to the corpus before querying.",
-                "query": query,
-                "corpus_name": corpus_name,
-                "results": [],
-                "results_count": 0,
             }
 
         # Get the corpus resource name
@@ -67,6 +52,7 @@ def rag_query(
         )
 
         # Perform the query
+        print("Performing retrieval query...")
         response = rag.retrieval_query(
             rag_resources=[
                 rag.RagResource(
@@ -101,6 +87,7 @@ def rag_query(
                 "status": "warning",
                 "message": f"No results found in corpus '{corpus_name}' for query: '{query}'",
                 "query": query,
+                "corpus_name": corpus_name,
                 "results": [],
                 "results_count": 0,
             }
@@ -109,15 +96,17 @@ def rag_query(
             "status": "success",
             "message": f"Successfully queried corpus '{corpus_name}'",
             "query": query,
+            "corpus_name": corpus_name,
             "results": results,
             "results_count": len(results),
         }
 
     except Exception as e:
-        logging.error(f"Error querying corpus: {str(e)}")
+        error_msg = f"Error querying corpus: {str(e)}"
+        logging.error(error_msg)
         return {
             "status": "error",
-            # "message": f"Error querying corpus: {str(e)}",
-            # "query": query,
-            # "corpus_name": corpus_name,
+            "message": error_msg,
+            "query": query,
+            "corpus_name": corpus_name,
         }

@@ -13,7 +13,7 @@ from ..config import (
     DEFAULT_CHUNK_SIZE,
     DEFAULT_EMBEDDING_REQUESTS_PER_MIN,
 )
-from .utils import create_corpus_if_not_exists, get_corpus_resource_name
+from .utils import check_corpus_exists, get_corpus_resource_name
 
 
 def add_data(
@@ -23,10 +23,9 @@ def add_data(
 ) -> dict:
     """
     Add new data sources to a Vertex AI RAG corpus.
-    If the specified corpus doesn't exist, it will be created automatically.
 
     Args:
-        corpus_name (str): The name or full resource name of the corpus to add data to
+        corpus_name (str): The name of the corpus to add data to. If empty, the current corpus will be used.
         paths (List[str]): List of URLs or GCS paths to add to the corpus.
                           Supported formats:
                           - Google Drive: "https://drive.google.com/file/d/{FILE_ID}/view"
@@ -38,6 +37,15 @@ def add_data(
     Returns:
         dict: Information about the added data and status
     """
+    # Check if the corpus exists
+    if not check_corpus_exists(corpus_name, tool_context):
+        return {
+            "status": "error",
+            "message": f"Corpus '{corpus_name}' does not exist. Please create it first using the create_corpus tool.",
+            "corpus_name": corpus_name,
+            "paths": paths,
+        }
+
     # Validate inputs
     if not paths or not all(isinstance(path, str) for path in paths):
         return {
@@ -101,18 +109,6 @@ def add_data(
         }
 
     try:
-        # Check if corpus exists and create it if needed
-        corpus_result = create_corpus_if_not_exists(corpus_name, tool_context)
-        if not corpus_result["success"]:
-            return {
-                "status": "error",
-                "message": f"Error with corpus: {corpus_result['message']}",
-                "corpus_name": corpus_name,
-                "paths": paths,
-            }
-
-        corpus_created = corpus_result.get("was_created", False)
-
         # Get the corpus resource name
         corpus_resource_name = get_corpus_resource_name(corpus_name)
 
@@ -132,19 +128,19 @@ def add_data(
             max_embedding_requests_per_min=DEFAULT_EMBEDDING_REQUESTS_PER_MIN,
         )
 
+        # Set this as the current corpus if not already set
+        if not tool_context.state.get("current_corpus"):
+            tool_context.state["current_corpus"] = corpus_name
+
         # Build the success message
-        creation_msg = (
-            f"Created new corpus '{corpus_name}' and " if corpus_created else ""
-        )
         conversion_msg = ""
         if conversions:
             conversion_msg = " (Converted Google Docs URLs to Drive format)"
 
         return {
             "status": "success",
-            "message": f"{creation_msg}Successfully added {import_result.imported_rag_files_count} file(s) to corpus '{corpus_name}'{conversion_msg}",
+            "message": f"Successfully added {import_result.imported_rag_files_count} file(s) to corpus '{corpus_name}'{conversion_msg}",
             "corpus_name": corpus_name,
-            "corpus_created": corpus_created,
             "files_added": import_result.imported_rag_files_count,
             "paths": validated_paths,
             "invalid_paths": invalid_paths,

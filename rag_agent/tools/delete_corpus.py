@@ -50,10 +50,9 @@ def delete_corpus(
         rag.delete_corpus(corpus_resource_name)
 
         # Remove from state by setting to False
-        if hasattr(tool_context, "state"):
-            state_key = f"corpus_exists_{corpus_name}"
-            if state_key in tool_context.state:
-                tool_context.state[state_key] = False
+        state_key = f"corpus_exists_{corpus_name}"
+        if state_key in tool_context.state:
+            tool_context.state[state_key] = False
 
         return {
             "status": "success",

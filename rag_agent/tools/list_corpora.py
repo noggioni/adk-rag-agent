@@ -4,13 +4,10 @@ Tool for listing all available Vertex AI RAG corpora.
 
 from typing import Dict, List, Union
 
-from google.adk.tools.tool_context import ToolContext
 from vertexai import rag
 
 
-def list_corpora(
-    tool_context: ToolContext,
-) -> dict:
+def list_corpora() -> dict:
     """
     List all available Vertex AI RAG corpora.
 

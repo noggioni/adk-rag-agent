@@ -4,7 +4,6 @@ Vertex AI RAG Agent
 A package for interacting with Google Cloud Vertex AI RAG capabilities.
 """
 
-import logging
 import os
 
 import vertexai
