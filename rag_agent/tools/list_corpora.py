@@ -11,9 +11,6 @@ def list_corpora() -> dict:
     """
     List all available Vertex AI RAG corpora.
 
-    Args:
-        tool_context (ToolContext): The tool context
-
     Returns:
         dict: A list of available corpora and status, with each corpus containing:
             - resource_name: The full resource name to use with other tools

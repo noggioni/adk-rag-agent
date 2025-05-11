@@ -38,14 +38,6 @@ def get_corpus_info(
         # Try to get corpus details first
         corpus_display_name = corpus_name  # Default if we can't get actual display name
 
-        try:
-            corpus = rag.get_corpus(corpus_resource_name)
-            if hasattr(corpus, "display_name") and corpus.display_name:
-                corpus_display_name = corpus.display_name
-        except Exception:
-            # Just continue without corpus details
-            pass
-
         # Process file information
         file_details = []
         try:
