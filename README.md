@@ -8,6 +8,7 @@ The Vertex AI RAG Agent allows you to:
 
 - Query document corpora with natural language questions
 - List available document corpora
+- Create new document corpora
 - Add new documents to existing corpora
 - Get detailed information about specific corpora
 - Delete corpora when they're no longer needed
@@ -77,17 +78,23 @@ Shows all available document corpora in your project:
 - Displays corpus names and basic information
 - Helps you understand what data collections are available
 
-### 3. Add New Data
+### 3. Create Corpus
+Create a new empty document corpus:
+- Specify a custom name for your corpus
+- Sets up the corpus with recommended embedding model configuration
+- Prepares the corpus for document ingestion
+
+### 4. Add New Data
 Add documents to existing corpora or create new ones:
 - Supports Google Drive URLs and GCS (Google Cloud Storage) paths
 - Automatically creates new corpora if they don't exist
 
-### 4. Get Corpus Information
+### 5. Get Corpus Information
 Provides detailed information about a specific corpus:
 - Shows document count, file metadata, and creation time
 - Useful for understanding corpus contents and structure
 
-### 5. Delete Corpus
+### 6. Delete Corpus
 Removes corpora that are no longer needed:
 - Requires confirmation to prevent accidental deletion
 - Permanently removes the corpus and all associated files
